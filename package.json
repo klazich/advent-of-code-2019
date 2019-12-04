@@ -1,0 +1,20 @@
+{
+  "name": "2019",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "babel-node",
+    "format": "prettier --write --loglevel=warn \"{calendar,input}/**/*.{js,jsx,json,css,md}\""
+  },
+  "devDependencies": {
+    "@babel/core": "^7.7.4",
+    "@babel/node": "^7.7.4",
+    "@babel/plugin-transform-runtime": "^7.7.4",
+    "@babel/preset-env": "^7.7.4",
+    "prettier": "^1.19.1"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.7.4"
+  }
+}
