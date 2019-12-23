@@ -1,9 +1,39 @@
 // @ts-check
 
+const modify = (obj, k, v) => {
+  obj[k] = v
+  return obj
+}
+
+const pipe = (...fns) => init => fns.reduce((x, f) => f(x), init)
+
+const add = x => y => z => state => modify(state, z, x + y)
+const mul = x => y => z => state => modify(state, z, x * y)
+const jnz = x => y => state => modify(state, 'ip', x !== 0 ? y : state.ip)
+const jez = x => y => state => modify(state, 'ip', x === 0 ? y : state.ip)
+const lsn = x => y => z => state => modify(state, z, x < y ? 1 : 0)
+const eql = x => y => z => state => modify(state, z, x === y ? 1 : 0)
+
+const run = fn => modes => (...params) => state =>
+  params.reduce((f, v, i) => f((modes[i] ?? 0) === 1 ? state[v] : v), fn)(state)
+
+const machine = intcode =>
+  function*() {
+    let state = { program: [...intcode], ip: 0 }
+
+    const parseOpcode = ({ program, ip }) => [
+      {
+        opcode: +program[ip].slice(-2),
+        modes: [...program.slice(0, -2)].map(v => +v).reverse(),
+      },
+      { program, ip: ip + 1 },
+    ]
+  }
+
 /**
  * @typedef {Object<string, any>} State The state object
  * @property {number[]} program Intcode instruction set
- * @property {Generator<number>} input 
+ * @property {number} input
  * @property {number} ip
  * @property {number} opcode
  * @property {number} [output]
@@ -48,7 +78,7 @@ const mul = state => {
 const mov = state => {
   const [[to], ip] = next1(state)
   const { program, input } = state
-  program[to] = input.next().value
+  program[to] = input
   return { ...state, program, input, ip }
 }
 
@@ -57,7 +87,7 @@ const out = state => {
   const [[p1], ip] = next1(state)
   const { program, modes } = state
   const v1 = modes.next().value === 0 ? program[p1] : p1
-  // console.log(v1)
+  console.log(v1)
   return { ...state, ip, output: v1 }
 }
 
@@ -141,41 +171,70 @@ const parseOpcode = state => {
   return { ...state, ip, opcode, modes }
 }
 
-/**
- * @param {((x: State) => State)[]} fns
- * @returns {(init: State) => State}
- */
-const pipe = (...fns) => init => fns.reduce((v, fn) => fn(v), init)
-
-const next = pipe(parseOpcode, exec)
-
-/**
- * @param {number[]} iterable
- * @returns {Generator<number>}
- */
-const makeIter = function*(iterable) {
-  for (let e of iterable) yield e
-}
-
 /** @param {number[]} arr */
 const copyArray = arr => [...arr]
 
-/**
- * @param {number[]} intcode
- * @returns {(init: number[]) => number}
- */
-const buildIntcode = intcode => init => {
-  /** @type {State} */
-  let state = {
-    program: copyArray(intcode),
-    input: makeIter(init),
-    ip: 0,
-    opcode: 0,
+// /**
+//  * @param {number[]} intcode
+//  * @returns {(init: number[]) => number}
+//  */
+// const buildIntcode = intcode => init => {
+//   /** @type {State} */
+//   let state = {
+//     program: copyArray(intcode),
+//     input: makeIter(init),
+//     ip: 0,
+//     opcode: 0,
+//   }
+
+//   while (state.opcode !== 99) state = next(state)
+
+//   return state.output
+// }
+
+function coroutine(generatorFunction) {
+  return function(...args) {
+    let generatorObject = generatorFunction(...args)
+    generatorObject.next()
+    return generatorObject
   }
-
-  while (state.opcode !== 99) state = next(state)
-
-  return state.output
 }
 
-export default buildIntcode
+const buildIntcode = intcode => (phase, name) =>
+  coroutine(function*(receiver) {
+    let initiated = false
+    let state = /** @type {State} */ ({
+      program: copyArray(intcode),
+      ip: 0,
+      opcode: 0,
+    })
+
+    try {
+      while (state.output !== 99) {
+        if (state.opcode === 4) receiver.next(state.output)
+        const next = parseOpcode(state)
+        if (next.opcode === 3) {
+          next.input = !initiated ? phase : yield
+          initiated = true
+        }
+        state = exec(next)
+      }
+    } finally {
+      receiver.next(state.output)
+      console.log(name, state.output)
+    }
+  })
+
+/** @type {(intcode: number[]) => (seq: number[]) => void} */
+const init = intcode => seq => {
+  const computer = buildIntcode(intcode)
+  const ampA = computer(seq[0], 'A')
+  const ampB = computer(seq[1], 'B')
+  const ampC = computer(seq[2], 'C')
+  const ampD = computer(seq[3], 'D')
+  const ampE = computer(seq[4], 'E')
+  const chained = ampA(ampB(ampC(ampD(ampE(ampA)))))
+  chained.next(0)
+}
+
+export default init
