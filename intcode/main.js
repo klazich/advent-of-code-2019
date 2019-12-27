@@ -67,10 +67,10 @@ const exec = state => runFn(operation(state.OPCODE))(state)
 const intMachine = intcode => async (src, trg) => {
   let state = parseIntcode(intcode)
 
-  
-
   while (getIpPoint(state) !== 99) {
     state = nextOP(state)
+
+    // const read = input =>
 
     if (state.OPCODE === 3) {
       // if (src.length > 0)
@@ -79,3 +79,46 @@ const intMachine = intcode => async (src, trg) => {
 }
 
 intMachine([3, 8, 1001, 8, 10, 8, 105, 1, 0, 0])()
+
+/**
+ * 
+ *  google search:
+ * javascript wait for value to be defined
+ * 
+ * 
+ */
+
+//First define some delay function which is called from async function
+function __delay__(timer) {
+  return new Promise(resolve => {
+    timer = timer || 2000
+    setTimeout(function() {
+      resolve()
+    }, timer)
+  })
+}
+
+//Then Declare Some Variable Global or In Scope
+//Depends on you
+let Variable = false
+
+//And define what ever you want with async fuction
+async function some() {
+  while (!Variable) await __delay__(1000)
+
+  //...code here because when Variable = true this function will
+}
+////////////////////////////////////////////////////////////
+//In Your Case
+//1.Define Global Variable For Check Statement
+//2.Convert function to async like below
+
+var isContinue = false
+setTimeout(async function() {
+  //STOPT THE FUNCTION UNTIL CONDITION IS CORRECT
+  while (!isContinue) await __delay__(1000)
+
+  //WHEN CONDITION IS CORRECT THEN TRIGGER WILL CLICKED
+  $('a.play').trigger('click')
+}, 1)
+/////////////////////////////////////////////////////////////
