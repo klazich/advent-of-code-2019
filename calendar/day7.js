@@ -3,19 +3,9 @@ import input from '../input/day7'
 
 // Day 7: Amplification Circuit
 // 1. 92663
-// 2.
+// 2. 14365052
 
-import buildIntcode from '../intcode'
-import init from '../intcode/gen'
-
-const computer = buildIntcode(input)
-
-/** @type {(fn : (a: [number, number]) => number) => (init?: number) => (seq: number[]) => number} */
-const chain = fn => (init = 0) => seq => {
-  let next = init
-  for (let x of seq) next = fn([x, next])
-  return next
-}
+import intMachine, { circuit } from '../intcode'
 
 /**
  * @param {any[]} iterable
@@ -47,39 +37,28 @@ const runAmpDiagnostic = (fn, seq) => {
   return highest
 }
 
-const ampDiagnostic = chain(computer)()
+// const ampDiagnostic = chain(computer)()
 
 // const result = runAmpDiagnostic(ampDiagnostic, [0, 1, 2, 3, 4])
 // console.log(result)
 
-init([
-  3,
-  26,
-  1001,
-  26,
-  -4,
-  26,
-  3,
-  27,
-  1002,
-  27,
-  2,
-  27,
-  1,
-  27,
-  26,
-  27,
-  4,
-  27,
-  1001,
-  28,
-  -1,
-  28,
-  1005,
-  28,
-  6,
-  99,
-  0,
-  0,
-  5,
-])([9, 8, 7, 6, 5])
+const main = async () => {
+  const baseMach = intMachine(input)
+  const setup = circuit(baseMach)
+  const phases = [5, 6, 7, 8, 9]
+
+  let max = 0
+
+  for (let seq of combos(phases)) {
+    const run = await setup(seq)
+    const result = run[0]
+    if (result > max) {
+      max = result
+      console.log(seq)
+    }
+  }
+
+  console.log(max)
+}
+
+main()
