@@ -1,15 +1,15 @@
-import { value } from '.'
+import { value } from '..'
 
 const op = 4
 const n = 1
 
 const fn = (state, log = false) => {
   const { modes, ip, prog } = state
-  const val = value(state.prog)
+  const val = value(state)
 
   const params = prog.slice(ip, ip + n)
 
-  const value1 = val(params[0], modes[0])
+  const value1 = Number(val(params[0], modes[0]))
 
   if (log) log('OUTPUT', ip, params, prog[ip - 1], op, modes)
 

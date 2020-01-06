@@ -1,14 +1,20 @@
-import add from './add'
-import mul from './mul'
-import mov from './mov'
-import out from './out'
-import jnz from './jnz'
-import jez from './jez'
-import lsn from './lsn'
-import eql from './eql'
+import add from './ops/add'
+import mul from './ops/mul'
+import mov from './ops/mov'
+import out from './ops/out'
+import jnz from './ops/jnz'
+import jez from './ops/jez'
+import lsn from './ops/lsn'
+import eql from './ops/eql'
+import arb from './ops/arb'
 
-export const value = prog => (param, mode) =>
-  mode === 0 ? prog[param] : param
+// proxyLogger
+
+export const value = ({prog, rb}) => (param, mode) => {
+  if (mode === 0) return BigInt(prog[param])
+  if (mode === 1) return BigInt(param)
+  if (mode === 2) return BigInt(prog[rb + param])
+}
 
 export const parseOpcode = state => {
   const { ip, prog } = state
@@ -35,4 +41,5 @@ export const exec = (state, logger) =>
     [jez.op]: jez.fn,
     [lsn.op]: lsn.fn,
     [eql.op]: eql.fn,
+    [arb.op]: arb.fn,
   }[state.opcode](state, logger))

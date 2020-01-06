@@ -1,7 +1,6 @@
 import { parseOpcode, exec } from './operations'
 import logger from './logger'
-
-const parseIntcode = intcode => Array.from(intcode)
+import parseIntcode from './parseIntcode'
 
 const unblock = () => new Promise(setImmediate)
 
@@ -21,14 +20,15 @@ export default intcode => (id, phase) => async (src, trg) => {
 
   let state = {
     prog: parseIntcode(intcode),
-    ip: 2,
+    ip: 0, // ip: 2,
+    rb: 0,
     opcode: null,
     modes: null,
     input: null,
     output: null,
   }
 
-  state.prog[state.prog[1]] = phase
+  // state.prog[state.prog[1]] = phase
 
   while (state.prog[state.ip] !== 99) {
     state = parseOpcode(state)
