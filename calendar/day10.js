@@ -1,8 +1,8 @@
 import input from '../input/day10'
 
 // Day 10: Monitoring Station
-// 1.
-// 2.
+// 1. 344
+// 2. 2732
 
 const buildSet = str =>
   str
@@ -38,7 +38,7 @@ const objMap = new Map()
 
 objSet.forEach(src => {
   const [si, sj] = src.split(',').map(s => +s)
-  objMap.set(src, [])
+  objMap.set(src, 0)
 
   const blocked = new Set()
 
@@ -54,7 +54,7 @@ objSet.forEach(src => {
       const pnt = `${pi},${pj}`
 
       if (objSet.has(pnt)) {
-        objMap.set(src, [...objMap.get(src), pnt])
+        objMap.set(src, objMap.get(src) + 1)
         blocked.add(`${rise},${run}`)
         return
       }
@@ -62,17 +62,66 @@ objSet.forEach(src => {
   })
 })
 
-// console.log(objMap)
+console.log(Math.max(...objMap.values()))
 
-// 43 x 43
-const disp = (src, arr) =>
-  Array.from({ length: 43 }, (_, i) =>
-    Array.from({ length: 43 }, (_, j) =>
-      `${i},${j}` === src ? '*' : arr.includes(`${i},${j}`) ? '#' : '.'
-    ).join('')
-  ).join('\n')
+// [34, 30]
 
-console.log([...objMap.keys()])
-console.log(objMap.get('0,4'))
-console.log(disp('0,4', objMap.get('0,4')))
+const relative = (si, sj) => (ti, tj) => [ti - si, tj - sj]
 
+const crtToPol = (y, x) => ({
+  crt: [y, x],
+  rad: Math.atan2(y, x),
+  dst: Math.hypot(y, x),
+  agl: ((Math.atan2(y, x) * 180) / Math.PI + 450) % 360,
+})
+
+console.log(crtToPol(...relative(34, 30)(33, 30)))
+console.log(crtToPol(...relative(34, 30)(35, 30)))
+
+const station = '34,30'
+const src = [34, 30]
+
+// const station = '13,11'
+// const src = [13, 11]
+
+const rel = relative(...src)
+const radMap = {}
+
+objSet.forEach(trg => {
+  if (trg === station) return
+  const polar = crtToPol(...rel(...trg.split(',').map(s => +s)))
+  radMap[trg] = polar
+})
+
+const radArr = Object.entries(radMap).map(([trg, { crt, rad, dst, agl }]) => ({
+  abs: trg.split(',').map(s => +s),
+  rel: crt,
+  rad: rad < 0 ? Math.PI + rad : rad,
+  dst,
+  agl,
+}))
+
+const sortedRadArr = radArr
+  .sort(({ dst: a }, { dst: b }) => a - b)
+  .sort(({ agl: a }, { agl: b }) => a - b)
+
+const stackedRadArr = sortedRadArr.reduce(
+  ({ c, arr }, o) => {
+    const { rad } = o
+    if (rad === c) arr[arr.length - 1].push(o)
+    else arr.push([o])
+    return { c: rad, arr }
+  },
+  { arr: [] }
+).arr
+
+let order = []
+
+while (stackedRadArr.length > 0) {
+  const nextArr = stackedRadArr.shift()
+  const nextObj = nextArr.shift()
+  order.push(nextObj)
+  if (nextArr.length > 0) stackedRadArr.push(nextArr)
+}
+
+console.log(order[199])
