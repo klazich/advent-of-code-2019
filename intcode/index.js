@@ -15,7 +15,8 @@ export const circuit = baseMachine => async seq => {
   return io.flat()
 }
 
-export default intcode => (id, phase) => async (src, trg) => {
+// export default intcode => (id, phase) => async (src, trg) => {
+export default intcode => (id, src, trg) => async () => {
   const log = logger(id)
 
   let state = {
@@ -48,4 +49,6 @@ export default intcode => (id, phase) => async (src, trg) => {
       trg.push(state.output)
     }
   }
+
+  trg.push('END')
 }
