@@ -11,7 +11,7 @@ const fn = (state, log = false) => {
 
   const target = modes[0] === 2 ? params[0] + state.rb : params[0]
 
-  prog[target] = input
+  prog[target] = input.shift()
 
   if (log) log('INPUT', ip, params, prog[ip - 1], op, modes)
 

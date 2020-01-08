@@ -25,7 +25,7 @@ export default intcode => (id, src, trg) => async () => {
     rb: 0,
     opcode: null,
     modes: null,
-    input: null,
+    input: [],
     output: null,
   }
 
@@ -35,11 +35,9 @@ export default intcode => (id, src, trg) => async () => {
     state = parseOpcode(state)
 
     if (state.opcode === 3) {
-      if (src.length > 0) state.input = src.shift()
-      else {
-        await unblock()
-        state.ip -= 1
-        continue
+      while (state.input.length < 1) {
+        if (src.length > 0) state.input.push(src.shift())
+        else await unblock()
       }
     }
 
@@ -49,6 +47,5 @@ export default intcode => (id, src, trg) => async () => {
       trg.push(state.output)
     }
   }
-
   trg.push('END')
 }
