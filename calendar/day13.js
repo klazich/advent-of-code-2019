@@ -2,33 +2,11 @@ import input from '../input/day13'
 
 // Day 13: Care Package
 // 1. 380
-// 2.
-
-/** UTILS **/
-
-const by3 = function*(iterable) {
-  let arr = []
-  for (let e of iterable) {
-    arr.push(e)
-    if (arr.length === 3) {
-      yield [...arr]
-      arr = []
-    }
-  }
-}
-
-const count = type => board => {
-  let n = 0
-  for (let v of board.values()) if (v === type) n += 1
-  return n
-}
+// 2. 18647
 
 const unblock = () => new Promise(setImmediate)
 
-/** MAIN **/
-
 import IntMachine from '../intcode'
-import Grid from '../grid'
 
 /**
  * 0 - empty tile. No game object appears in this tile.
@@ -39,49 +17,71 @@ import Grid from '../grid'
  */
 
 input[0] = 2
-const buildMachine = IntMachine(input)
 
-const compile = () => {
-  const io = { in: [], out: [] }
-  return {
-    machine: buildMachine('A', io.in, io.out),
-    grid: Grid(),
-    io,
-  }
+const chars = { 0: ' ', 1: '█', 2: '■', 3: '━', 4: '' }
+
+const makeGrid = () =>
+  Array.from({ length: 26 }, () => Array.from({ length: 42 }, () => ' '))
+
+const toStr = grid => score => {
+  const tiles = grid.map(row => row.join('')).join('\n')
+  return tiles + `  >> ${score} <<`
 }
 
-const processOutput = async function*(data) {
+const setter = grid => (x, y, v) => {
+  grid[y][x] = chars[v]
+}
+
+const Game = (grid = makeGrid()) => (id, src, trg) => async () => {
+  let state = grid
+  let paddle = null
+  let ball = null
+  let score = 0
+
+  const set = setter(state)
+  const img = toStr(state)
+
   while (true) {
-    const values = []
-    while (values.length < 3) {
-      if (data.length > 0) values.push(data.shift())
+    const input = []
+
+    while (input.length < 3) {
+      if (src.length > 0) input.push(src.shift())
       else await unblock()
+
+      if (input[0] === 'END') {
+        trg.shift()
+        trg.push(score)
+        return
+      }
     }
-    yield values
+
+    const [x, y, v] = input
+
+    if (x === -1 && y === 0) score = v
+    else set(x, y, v)
+    if (v === 3 && paddle !== x) paddle = x
+    if (v === 4 && ball !== x) ball = x
+
+    if (typeof paddle === 'number' && typeof ball === 'number') {
+      trg.shift()
+      trg.push(Math.sign(ball - paddle))
+      console.log(img(score))
+    }
   }
 }
+
+const buildMachine = IntMachine(input)
+const buildGame = Game()
 
 const main = async () => {
-  const { machine, grid, io } = compile()
+  const io = { A: [], B: [] }
 
-  machine()
+  const machine = buildMachine('M', io.A, io.B)
+  const game = buildGame('G', io.B, io.A)
 
-  let pos = {paddle: null, ball: null}
+  await Promise.all([machine(), game()])
 
-  for await (let [x, y, v] of processOutput(io.out)) {
-    grid.write(x, y, v)
-
-    
-
-
-    if (typeof grid.tilt === 'number' && io.in.length === 0) {
-      io.in.push(grid.tilt)
-      console.log(grid.toString())
-      console.log(grid.paddle, grid.ball, grid.tilt)
-    }
-    // if (v === 3 || v === 4) console.log(grid.paddle, grid.ball, grid.tilt)
-    // if (x === -1) console.log(grid.toString())
-  }
+  console.log(io.A)
 }
 
 main()

@@ -41,6 +41,7 @@ export default intcode => (id, src, trg) => async () => {
       }
     }
 
+    // state = exec(state, log)
     state = exec(state)
 
     if (state.opcode === 4) {
