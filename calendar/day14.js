@@ -1,8 +1,8 @@
 import input from '../input/day14'
 
 // Day 14: Space Stoichiometry
-// 1.
-// 2,
+// 1. 399063
+// 2. 4215654
 
 const parseReaction = str => {
   const [s, t] = str.split('=>')
@@ -34,7 +34,9 @@ const map = buildMap(input.split('\n').map(parseReaction))
 
 // console.log(map)
 
-const surplus = {}
+const surplus = {
+  // ORE: 1000000000000
+}
 
 const getCosts = map => (id, needed = 1) => {
   const onhand = surplus[id] ?? 0
@@ -51,10 +53,7 @@ const getCosts = map => (id, needed = 1) => {
   const mul = Math.ceil(short / quantity)
 
   const makes = quantity * mul
-  console.log(id, makes, needed)
-  surplus[id] = makes - needed
-
-
+  surplus[id] = makes - short
 
   return sources.reduce(
     (a, { id, qty }) =>
@@ -63,5 +62,16 @@ const getCosts = map => (id, needed = 1) => {
   )
 }
 
-console.log(getCosts(map)('FUEL', 1))
-console.log(surplus)
+let total = 0
+let count = 0
+
+while (total < 1000000000000) {
+  const step = getCosts(map)('FUEL', 1)
+  total += step
+
+  count += 1
+  if (count % 100000 === 0)
+    console.log('|' + `${total}`.padStart(13, ' '), `${step}`.padStart(13, ' '))
+}
+
+console.log(count)
