@@ -1,24 +1,11 @@
 import input from '../input/day18'
 
 // Day 18: Many-Worlds Interpretation
-// 1.
+// 1. 6286
 // 2.
 
 const isDoor = str => /[A-Z]/.test(str)
 const isKey = str => /[a-z]/.test(str)
-
-const Node = (i, j, value, count) => ({
-  value,
-  count,
-  get pos() {
-    return [i, j]
-  },
-  get id() {
-    return `${i},${j}`
-  },
-})
-
-const getter = grid => ([i, j]) => grid[i][j]
 
 const enumerate = function*(iterable) {
   for (let i = 0; i < iterable.length; i += 1) yield [i, iterable[i]]
@@ -29,9 +16,7 @@ const memoize = fn => {
   return new Proxy(fn, {
     apply(target, thisArg, argsList) {
       const key = [target.name, ...argsList].toString()
-      if (cache[key]) console.log('CACHE', key)
-      if (!cache[key]) cache[key] = Reflect.apply(target, thisArg, argsList)
-
+      if (!(key in cache)) cache[key] = Reflect.apply(target, thisArg, argsList)
       return cache[key]
     },
   })
@@ -46,18 +31,63 @@ const findNeighbors = grid =>
     }
   }
 
+// const findAdjacent = grid => {
+//   const neighbours = findNeighbors(grid)
+
+//   return function* walk(init, visited = new Set(), dist = 1) {
+//     visited.add(init.join(','))
+//     for (let [i, j] of neighbours(init)) {
+
+//       const tile = grid[i][j]
+//       if (tile !== '#' && !visited.has(`${i},${j}`)) {
+//         console.log(init, dist)
+//         if (/[a-zA-Z]/.test(tile)) yield [tile, dist]
+//         else yield* walk([i, j], visited.add(`${i},${j}`), dist + 1)
+//       }
+//     }
+//   }
+// }
+
 const findAdjacent = grid => {
   const neighbours = findNeighbors(grid)
 
-  return function* walk(init, visited = new Set(), dist = 1) {
-    visited.add(init.join(','))
-    for (let [i, j] of neighbours(init)) {
-      const tile = grid[i][j]
-      if (tile !== '#' && !visited.has(`${i},${j}`)) {
-        if (/[a-zA-Z]/.test(tile)) yield [tile, dist]
-        else yield* walk([i, j], visited.add(`${i},${j}`), dist + 1)
+  return src => {
+    const visited = new Set()
+    const distances = new Proxy(
+      {},
+      {
+        get(trg, p, receiver) {
+          return Reflect.has(trg, p) ? Reflect.get(trg, p, receiver) : Infinity
+        },
       }
+    )
+    const items = {}
+    const queue = []
+
+    distances[src.join(',')] = 0
+    queue.push([src, 0])
+
+    while (queue.length > 0) {
+      const [node, d] = queue.shift()
+
+      if (visited.has(node.join(','))) continue
+
+      const dist = d + 1
+
+      for (let [i, j] of neighbours(node)) {
+        const tile = grid[i][j]
+        if (tile !== '#' && !visited.has(`${i},${j}`)) {
+          if (dist < distances[`${i},${j}`]) distances[`${i},${j}`] = dist
+          if (/[a-zA-z]/.test(tile)) {
+            items[tile] = (items[tile] ?? 0) + distances[`${i},${j}`]
+          } else queue.push([[i, j], dist])
+        }
+      }
+
+      visited.add(node.join(','))
     }
+
+    return Object.entries(items)
   }
 }
 
@@ -69,23 +99,19 @@ const buildGraph = input => {
 
   for (let [i, row] of enumerate(grid))
     for (let [j, tile] of enumerate(row))
-      if (/[a-zA-z@]/.test(tile)) {
-        const found = []
-        for (let adj of adjacents([i, j])) found.push(adj)
-        graph[tile] = found.sort((a, b) => a[1] - b[1])
-      }
+      if (/[a-zA-z@]/.test(tile)) graph[tile] = adjacents([i, j])
 
   return graph
 }
 
 const reachableKeys = graph => {
-  const distances = Object.keys(graph).reduce((m, v) => {
-    m[v] = Infinity
-    return m
-  }, {})
-  const queue = []
+  const fn = memoize(function rkFn(init, ...held) {
+    const distances = Object.keys(graph).reduce((m, v) => {
+      m[v] = Infinity
+      return m
+    }, {})
+    const queue = []
 
-  const rkFn = (init, ...held) => {
     queue.push([init, 0])
 
     while (queue.length > 0) {
@@ -94,6 +120,7 @@ const reachableKeys = graph => {
       else continue
 
       if (isDoor(node) && !held.includes(node.toLowerCase())) continue
+      if (node !== init && isKey(node) && !held.includes(node)) continue
 
       for (let [neighbor, weight] of graph[node]) {
         const nextDist = dist + weight
@@ -102,54 +129,39 @@ const reachableKeys = graph => {
     }
 
     return Object.entries(distances)
-      .filter(([k, v]) => isKey(k) && !held.includes(k) && v < Infinity)
+      .filter(
+        ([k, v]) => isKey(k) && !held.includes(k) && k !== init && v < Infinity
+      )
       .sort((a, b) => a[1] - b[1])
-  }
+  })
 
-  return memoize(rkFn)
+  return fn
 }
+
+const keys = graph => Object.keys(graph).filter(v => isKey(v))
 
 const minimumPath = graph => {
   const reachable = reachableKeys(graph)
+  const count = keys(graph).length
 
-  const mpFn = (init, ...held) => {
-    if (held.length === 26) return 0
+  const fn = memoize(function mpFn(src, ...held) {
+    if (held.length === count) return 0
 
-    const min = Infinity
+    let min = Infinity
 
-    for (let [n, d] of reachable(init, ...held)) {
-      console.log(init, n, d)
+    for (let [n, d] of reachable(src, ...held)) {
       const nextHeld = [...held, n].sort()
-      const dist = d + mpFn(n, ...nextHeld)
+      const dist = d + fn(n, ...nextHeld)
       if (dist < min) min = dist
     }
 
     return min
-  }
+  })
 
-  return memoize(mpFn)
+  return fn
 }
 
-// 1. Mark all nodes unvisited. Create a set of all the unvisited nodes called the unvisited set.
-// 2. Assign to every node a tentative distance value: set it to zero for our initial node and to
-//    infinity for all other nodes. Set the initial node as current.[13]
-// 3. For the current node, consider all of its unvisited neighbours and calculate their tentative
-//    distances through the current node. Compare the newly calculated tentative distance to the
-//    current assigned value and assign the smaller one. For example, if the current node A is
-//    marked with a distance of 6, and the edge connecting it with a neighbour B has length 2, then
-//    the distance to B through A will be 6 + 2 = 8. If B was previously marked with a distance
-//    greater than 8 then change it to 8. Otherwise, the current value will be kept.
-// 4. When we are done considering all of the unvisited neighbours of the current node, mark the
-//    current node as visited and remove it from the unvisited set. A visited node will never be
-//    checked again.
-// 5. If the destination node has been marked visited (when planning a route between two specific
-//    nodes) or if the smallest tentative distance among the nodes in the unvisited set is infinity
-//    (when planning a complete traversal; occurs when there is no connection between the initial
-//    node and remaining unvisited nodes), then stop. The algorithm has finished.
-// 6. Otherwise, select the unvisited node that is marked with the smallest tentative distance, set
-//    it as the new "current node", and go back to step 3.
-
 const graph = buildGraph(input)
-const minSteps = minimumPath(graph)('@')
 
+const minSteps = minimumPath(graph)('@')
 console.log(minSteps)
