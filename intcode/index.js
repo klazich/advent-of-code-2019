@@ -4,6 +4,16 @@ import parseIntcode from './parseIntcode'
 
 const unblock = () => new Promise(setImmediate)
 
+const next = async (arr, id) => {
+  let t = 0
+  while (true) {
+    t += 1
+    if (arr.length > 0) return arr.shift()
+    else await unblock()
+    if (t === 10000) console.log('WAITING', id ?? '')
+  }
+}
+
 export const circuit = baseMachine => async seq => {
   const io = Array.from({ length: seq.length }, (_, i) => (i === 0 ? [0] : []))
   const machines = seq.map((phase, i) => baseMachine(i, phase))
@@ -35,10 +45,8 @@ export default intcode => (id, src, trg) => async () => {
     state = parseOpcode(state)
 
     if (state.opcode === 3) {
-      while (state.input.length < 1) {
-        if (src.length > 0) state.input.push(src.shift())
-        else await unblock()
-      }
+      const take = await next(src, id)
+      state.input.push(take)
     }
 
     // state = exec(state, log)
