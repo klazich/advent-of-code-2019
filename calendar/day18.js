@@ -2,7 +2,7 @@ import input from '../input/day18'
 
 // Day 18: Many-Worlds Interpretation
 // 1. 6286
-// 2.
+// 2. 2140
 
 const isDoor = str => /[A-Z]/.test(str)
 const isKey = str => /[a-z]/.test(str)
@@ -30,23 +30,6 @@ const findNeighbors = grid =>
       if (grid[k][l] !== '#') yield [k, l]
     }
   }
-
-// const findAdjacent = grid => {
-//   const neighbours = findNeighbors(grid)
-
-//   return function* walk(init, visited = new Set(), dist = 1) {
-//     visited.add(init.join(','))
-//     for (let [i, j] of neighbours(init)) {
-
-//       const tile = grid[i][j]
-//       if (tile !== '#' && !visited.has(`${i},${j}`)) {
-//         console.log(init, dist)
-//         if (/[a-zA-Z]/.test(tile)) yield [tile, dist]
-//         else yield* walk([i, j], visited.add(`${i},${j}`), dist + 1)
-//       }
-//     }
-//   }
-// }
 
 const findAdjacent = grid => {
   const neighbours = findNeighbors(grid)
@@ -99,7 +82,7 @@ const buildGraph = input => {
 
   for (let [i, row] of enumerate(grid))
     for (let [j, tile] of enumerate(row))
-      if (/[a-zA-z@]/.test(tile)) graph[tile] = adjacents([i, j])
+      if (/[a-zA-z1-4]/.test(tile)) graph[tile] = adjacents([i, j])
 
   return graph
 }
@@ -163,5 +146,32 @@ const minimumPath = graph => {
 
 const graph = buildGraph(input)
 
-const minSteps = minimumPath(graph)('@')
-console.log(minSteps)
+// const minSteps = minimumPath(graph)('@')
+// console.log(minSteps)
+
+const minimumPath2 = graph => {
+  const reachable = reachableKeys(graph)
+  const count = keys(graph).length
+
+  const fn = memoize(function mpFn(sources, ...held) {
+    if (held.length === count) return 0
+
+    let min = Infinity
+
+    for (let src of sources) {
+      for (let [n, d] of reachable(src, ...held)) {
+        const nextSources = sources.replace(src, n)
+        const nextHeld = [...held, n].sort()
+        const dist = d + fn(nextSources, ...nextHeld)
+        if (dist < min) min = dist
+      }
+    }
+
+    return min
+  })
+
+  return fn
+}
+
+const minSteps2 = minimumPath2(graph)('1234')
+console.log(minSteps2)
