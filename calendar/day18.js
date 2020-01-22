@@ -61,7 +61,7 @@ const findAdjacent = grid => {
         const tile = grid[i][j]
         if (tile !== '#' && !visited.has(`${i},${j}`)) {
           if (dist < distances[`${i},${j}`]) distances[`${i},${j}`] = dist
-          if (/[a-zA-z]/.test(tile)) {
+          if (/[a-zA-Z]/.test(tile)) {
             items[tile] = (items[tile] ?? 0) + distances[`${i},${j}`]
           } else queue.push([[i, j], dist])
         }
