@@ -56,5 +56,6 @@ export default intcode => (id, src, trg) => async () => {
       trg.push(state.output)
     }
   }
+
   trg.push('END')
 }
