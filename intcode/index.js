@@ -55,6 +55,8 @@ export default intcode => (id, src, trg) => async () => {
     if (state.opcode === 4) {
       trg.push(state.output)
     }
+
+    // await unblock()
   }
 
   trg.push('END')
