@@ -1,3 +1,5 @@
+import readline from 'readline'
+
 import input from '../input/day25'
 
 // Day 25: Cryostasis
@@ -12,6 +14,13 @@ const next = async arr => {
     else await unblock()
   }
 }
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+})
+
+
 
 const Display = src => async () => {
   let str = ''
@@ -39,6 +48,12 @@ const processInput = (src, trg) => async () => {
   }
 }
 
+const processOutput = (src, trg) => async () => {
+  while (true) {
+    const code = await next(src)
+  }
+}
+
 const BuildASCII = (id, src, trg) => async () => {
   const io = { in: [], out: [] }
   const computer = Intcode(id, io.in, io.out)
@@ -49,11 +64,13 @@ const BuildASCII = (id, src, trg) => async () => {
 }
 
 const main = async () => {
-  const io = {in: ['east', 'inv'], out: []}
+  const io = { in: ['east', 'inv'], out: [] }
 
   const droid = BuildASCII('D', io.in, io.out)
 
   await droid()
 }
 
-main()
+// main()
+
+
